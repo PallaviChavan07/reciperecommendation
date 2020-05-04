@@ -36,11 +36,11 @@ coclust.Coclustering(recipe_df, train_rating_df, pd, benchmark)
 print("--- Total Surprise Coclustering recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))
 
 #hybrid
-hyd.ComputeHybrid(recipe_df, train_rating_df, pd, benchmark)
-print("--- Total Surprise Hybrid recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))
+#hyd.ComputeHybrid(recipe_df, train_rating_df, pd, benchmark)
+#print("--- Total Surprise Hybrid recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))
 
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 results = pd.DataFrame.from_records(benchmark, exclude=['MSE', 'FCP'],
-                                    columns=['RMSE', 'MAE', 'MSE', 'FCP', 'PrecisionAt10', 'RecallAt10'],
-                                    index=['SVD++', 'SVD', 'CoClustering', 'SlopeOne', 'Hybrid'])
+                                    columns=['RMSE', 'MAE', 'MSE', 'FCP', 'PrecisionAt10', 'RecallAt5', 'PrecisionAt5', 'RecallAt10', 'PrecisionAt20', 'RecallAt20'],
+                                    index=['SVD++', 'SVD', 'CoClustering', 'SlopeOne'])
 print(results)

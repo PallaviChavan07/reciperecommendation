@@ -60,7 +60,17 @@ def RunAllEvals(predictions, benchmark):
     precisionAt10 = sum(prec for prec in precisions.values()) / len(precisions)
     recallAt10 = sum(rec for rec in recalls.values()) / len(recalls)
 
-    rowtuple = [rmse, mae, mse, fcp, precisionAt10, recallAt10]
+    precisions, recalls = precision_recall_at_k(predictions, k=5)
+    # Precision and recall can then be averaged over all users
+    precisionAt5 = sum(prec for prec in precisions.values()) / len(precisions)
+    recallAt5 = sum(rec for rec in recalls.values()) / len(recalls)
+
+    precisions, recalls = precision_recall_at_k(predictions, k=20)
+    # Precision and recall can then be averaged over all users
+    precisionAt20 = sum(prec for prec in precisions.values()) / len(precisions)
+    recallAt20 = sum(rec for rec in recalls.values()) / len(recalls)
+
+    rowtuple = [rmse, mae, mse, fcp, precisionAt5, recallAt5, precisionAt10, recallAt10, precisionAt20, recallAt20]
     benchmark.append(rowtuple)
 
     return benchmark
