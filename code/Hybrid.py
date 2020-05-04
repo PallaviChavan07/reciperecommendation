@@ -1,21 +1,22 @@
 #https://www.kaggle.com/robottums/hybrid-recommender-systems-with-surprise
 import surprise
 import numpy as np
-import pandas as pd
+from datetime import datetime
+import os
 import matplotlib.pyplot as plt
-from surprise import KNNBasic, SVD, CoClustering, SlopeOne, Reader, Dataset, accuracy
+from surprise import KNNBasic, SVD, CoClustering, SlopeOne, SVDpp, Reader, Dataset, accuracy
 from surprise.model_selection import split
 from sklearn.model_selection import train_test_split
 import Evaluators
 
 class HybridAlgorithm(surprise.AlgoBase):
-    def __init__(self, epochs, learning_rate, num_models, knnbasic, svd, coclus, slopeone):
+    def __init__(self, epochs, learning_rate, num_models, svd, svdpp, coclus, slopeone):
         surprise.AlgoBase.__init__(self)
         self.alpha = np.array([1 / num_models] * num_models)
         self.epochs = epochs
         self.learning_rate = learning_rate
-        self.knnbasic = knnbasic
         self.svd = svd
+        self.svdpp = svdpp
         self.coclus = coclus
         self.slopeone = slopeone
 
@@ -38,7 +39,7 @@ class HybridAlgorithm(surprise.AlgoBase):
             # if (newalpha - self.alpha < 0.001).all(): break
             # self.alpha = newalpha
 
-            predictions = np.array([self.knnbasic.test(holdout), self.svd.test(holdout), self.coclus.test(holdout), self.slopeone.test(holdout)])
+            predictions = np.array([self.svdpp.test(holdout), self.svd.test(holdout), self.coclus.test(holdout), self.slopeone.test(holdout)])
             rmseGradient = np.array([accuracy.rmse(list(pred), verbose=False) for pred in predictions])
             newalpha = self.alpha - self.learning_rate * rmseGradient
             # convergence check:
@@ -51,7 +52,7 @@ class HybridAlgorithm(surprise.AlgoBase):
         if not (self.trainset.knows_user(u) and self.trainset.knows_item(i)):
             raise surprise.PredictionImpossible('User and/or item is unkown.')
         #remove string data from last column
-        algoResults = np.array([self.knnbasic.predict(u, i)[:-1], self.svd.predict(u, i)[:-1],
+        algoResults = np.array([self.svdpp.predict(u, i)[:-1], self.svd.predict(u, i)[:-1],
                                 self.coclus.predict(u, i)[:-1], self.slopeone.predict(u, i)[:-1]])
         # replace none object type by 0 if true rating is None
         algoResults = np.where(algoResults == None, 0, algoResults)
@@ -74,14 +75,21 @@ def ComputeHybrid(recipe_df, train_rating_df, pd, benchmark):
 
     # split data into folds.
     kSplit = split.KFold(n_splits=10, shuffle=True)
-    sim_options = {'name': 'cosine', 'user_based': False}
-    # errors on removing sim_options.
-    knnbasic = KNNBasic(k=40, sim_options=sim_options, verbose=False)
-    rmseKNN = []
+    # sim_options = {'name': 'cosine', 'user_based': False}
+    # # errors on removing sim_options.
+    # knnbasic = KNNBasic(k=40, sim_options=sim_options, verbose=False)
+    # rmseKNN = []
+    # for trainset, testset in kSplit.split(data):  # iterate through the folds.
+    #     knnbasic.fit(trainset)
+    #     predictionsKNN = knnbasic.test(testset)
+    #     rmseKNN.append(accuracy.rmse(predictionsKNN, verbose=False))  # get root means squared error
+
+    rmseSVDpp = []
+    svdpp = SVDpp(n_factors=30, n_epochs=5)
     for trainset, testset in kSplit.split(data):  # iterate through the folds.
-        knnbasic.fit(trainset)
-        predictionsKNN = knnbasic.test(testset)
-        rmseKNN.append(accuracy.rmse(predictionsKNN, verbose=False))  # get root means squared error
+        svdpp.fit(trainset)
+        predictionsSVDpp = svdpp.test(testset)
+        rmseSVDpp.append(accuracy.rmse(predictionsSVDpp, verbose=False))  # get root means squared error
 
     rmseSVD = []
     svd = SVD(n_factors=30,n_epochs=5,biased=True)
@@ -105,15 +113,15 @@ def ComputeHybrid(recipe_df, train_rating_df, pd, benchmark):
         predictionsSlope = slopeone.test(testset)
         rmseSlope.append(accuracy.rmse(predictionsSlope, verbose=False))  # get root means squared error
 
-    hybrid = HybridAlgorithm(epochs=10, learning_rate=0.05, num_models=4, knnbasic=knnbasic, svd=svd, coclus=coclus, slopeone=slopeone)
+    hybrid = HybridAlgorithm(epochs=10, learning_rate=0.05, num_models=4, svdpp=svdpp, svd=svd, coclus=coclus, slopeone=slopeone)
     rmseHybrid = []
     hybrid.fit(holdout)
     for trainset, testset in kSplit.split(data):  # iterate through the folds.
         predictionsHybrid = hybrid.test(testset)
         rmseHybrid.append(accuracy.rmse(predictionsHybrid, verbose=False))  # get root means squared error
 
-    PredArray = [predictionsKNN, predictionsSVD, predictionsCoClus, predictionsSlope, predictionsHybrid]
-    DisplayPlot(PredArray, rmseKNN, rmseSVD, rmseCo, rmseSlope, rmseHybrid)
+    PredArray = [predictionsSVDpp, predictionsSVD, predictionsCoClus, predictionsSlope, predictionsHybrid]
+    DisplayPlot(PredArray, rmseSVDpp, rmseSVD, rmseCo, rmseSlope, rmseHybrid)
     Evaluators.RunAllEvals(predictionsHybrid, benchmark)
     #precisions, recalls = Evaluators.precision_recall_at_k(predictions=predictionsHybrid)
     # Precision and recall can then be averaged over all users
@@ -122,17 +130,17 @@ def ComputeHybrid(recipe_df, train_rating_df, pd, benchmark):
     #print("precisionAt10: ", precisionAt10)
     #print("recallAt10: ", recallAt10)
 
-def DisplayPlot(PredArray, rmseKNN, rmseSVD, rmseCo, rmseSlope, rmseHybrid):
+def DisplayPlot(PredArray, rmseSVDpp, rmseSVD, rmseCo, rmseSlope, rmseHybrid):
     #print("rmseKNN= ", rmseKNN)
     #print("rmseSVD= ", rmseSVD)
     #print("rmseCo= ", rmseCo)
     #print("rmseSlope= ", rmseSlope)
     #print("rmseHybrid= ", rmseHybrid)
     for pred in PredArray:
-        plt.plot(rmseKNN, label='knn', color='r')
+        plt.plot(rmseSVDpp, label='svdpp', color='r')
         plt.plot(rmseSVD, label='svd', color='g')
-        plt.plot(rmseCo, label='cluster', color='b')
-        plt.plot(rmseSlope, label='slope', color='c')
+        plt.plot(rmseCo, label='cocluster', color='b')
+        plt.plot(rmseSlope, label='slopeone', color='c')
         plt.plot(rmseHybrid, label='Hybrid', color='y', linestyle='--')
 
     plt.xlabel('folds (i.e. each computed pred and rmse)')
@@ -143,4 +151,7 @@ def DisplayPlot(PredArray, rmseKNN, rmseSVD, rmseCo, rmseSlope, rmseHybrid):
     #ax = rmsemetric.transpose().plot(kind='bar', figsize=(15, 8))
     #for p in ax.patches:
     #    ax.annotate("%.3f" % p.get_height(), (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center',xytext=(0, 10), textcoords='offset points')
-    plt.show()
+    #plt.show()
+    plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.png')
+    plt.savefig(os.path.realpath('../plots/%s' % plotfile))
+    print("Plotfile saved at ", plotfile)
