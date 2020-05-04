@@ -5,7 +5,7 @@ from surprise import CoClustering
 from surprise import Reader
 from surprise import Dataset
 from surprise.model_selection import train_test_split
-from code import Evaluators, Recipe_Reco_SingleUser, Top5_Recipe_Reco_PerUser
+import Evaluators, Recipe_Reco_SingleUser, Top5_Recipe_Reco_PerUser
 
 def Coclustering(recipe_df, train_rating_df, pd, benchmark):
     print("\n###### Compute CoClustering ######")

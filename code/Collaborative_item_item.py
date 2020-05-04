@@ -8,7 +8,7 @@ from surprise import Reader
 from surprise import Dataset
 from surprise.model_selection import train_test_split
 from surprise.model_selection import split
-from code import Evaluators, Recipe_Reco_SingleUser, Top5_Recipe_Reco_PerUser
+import Evaluators, Recipe_Reco_SingleUser, Top5_Recipe_Reco_PerUser
 
 def ComputeCollaborativeFiltering_Item_Item(recipe_df, train_rating_df, pd, benchmark, knnmeans=False):
     print("\n###### Compute CollaborativeFiltering_Item_Item ######")

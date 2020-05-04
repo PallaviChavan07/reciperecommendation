@@ -5,7 +5,7 @@ from surprise import SVD
 from surprise import Reader
 from surprise import Dataset
 from surprise.model_selection import train_test_split, GridSearchCV, cross_validate
-from code import Evaluators, Recipe_Reco_SingleUser, Top5_Recipe_Reco_PerUser
+import Evaluators, Recipe_Reco_SingleUser, Top5_Recipe_Reco_PerUser
 
 def ComputeSVD_MatrixFactorization(recipe_df, train_rating_df, pd, benchmark):
     print("\n###### Compute SVD_MatrixFactorization ######")

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from surprise import KNNBasic, SVD, CoClustering, SlopeOne, Reader, Dataset, accuracy
 from surprise.model_selection import split
 from sklearn.model_selection import train_test_split
-from code import Evaluators
+import Evaluators
 
 class HybridAlgorithm(surprise.AlgoBase):
     def __init__(self, epochs, learning_rate, num_models, knnbasic, svd, coclus, slopeone):

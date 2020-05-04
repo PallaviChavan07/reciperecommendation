@@ -1,13 +1,13 @@
 import pandas as pd
-import code.Normal_Predictor as np
-import code.Collaborative_item_item as cii
-import code.Collaborative_user_user as cuu
-import code.ContentBased as cb
-import code.SVD_MatrixFactorization as svd_mf
-import code.SVDplusplus as svdpp
-import code.SlopeOne as slopeone
-import code.CoClustering as coclust
-import code.Hybrid as hyd
+import Normal_Predictor as np
+import Collaborative_item_item as cii
+import Collaborative_user_user as cuu
+import ContentBased as cb
+import SVD_MatrixFactorization as svd_mf
+import SVDplusplus as svdpp
+import SlopeOne as slopeone
+import CoClustering as coclust
+import Hybrid as hyd
 import os
 
 recipe_df = pd.read_csv(os.path.realpath('../data/clean/recipes.csv'))
