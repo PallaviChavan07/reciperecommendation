@@ -41,6 +41,6 @@ print("--- Total Surprise Coclustering recommendation engine execution time is %
 
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 results = pd.DataFrame.from_records(benchmark, exclude=['MSE', 'FCP'],
-                                    columns=['RMSE', 'MAE', 'MSE', 'FCP', 'PrecisionAt10', 'RecallAt5', 'PrecisionAt5', 'RecallAt10', 'PrecisionAt20', 'RecallAt20'],
+                                    columns=['RMSE', 'MAE', 'MSE', 'FCP', 'PrecisionAt5', 'RecallAt5', 'PrecisionAt10', 'RecallAt10', 'PrecisionAt20', 'RecallAt20'],
                                     index=['SVD++', 'SVD', 'CoClustering', 'SlopeOne'])
 print(results)
