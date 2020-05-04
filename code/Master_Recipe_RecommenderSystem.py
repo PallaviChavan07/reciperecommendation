@@ -27,7 +27,7 @@ svd_mf.ComputeSVD_MatrixFactorization(recipe_df, train_rating_df, pd, benchmark)
 print("--- Total Surprise SVD recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))
 
 svdpp.SVDplusplus(recipe_df, train_rating_df, pd, benchmark)
-print("--- Total Surprise SVD recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))
+print("--- Total Surprise SVD++ recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))
 
 slopeone.Slopeone(recipe_df, train_rating_df, pd, benchmark)
 print("--- Total Surprise Slopeone recommendation engine execution time is %s min ---" % ((time.time() - start_time) / 60))

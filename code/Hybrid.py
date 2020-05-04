@@ -154,4 +154,4 @@ def DisplayPlot(PredArray, rmseSVDpp, rmseSVD, rmseCo, rmseSlope, rmseHybrid):
     #plt.show()
     plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.png')
     plt.savefig(os.path.realpath('../plots/%s' % plotfile))
-    print("Plotfile saved at ", plotfile)
+    print("Plot file saved at", os.path.realpath('../plots/%s' % plotfile))
