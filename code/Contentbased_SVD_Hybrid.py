@@ -16,66 +16,43 @@ import sys
 from datetime import datetime
 old_stdout = sys.stdout
 
-filename = datetime.now().strftime('mylogfile_%b-%d-%Y_%H%M.log')
-log_file = open("../logs/%s" %filename,"w")
-sys.stdout = log_file
+# filename = datetime.now().strftime('mylogfile_%b-%d-%Y_%H%M.log')
+# log_file = open("../logs/%s" %filename,"w")
+# sys.stdout = log_file
 # recipe_df = pd.read_csv('../data/small_10k/export_rated_recipes_set.csv')
 # train_rating_df = pd.read_csv('../data/small_10k/core-data-train_rating.csv')
-# test_rating_df = pd.read_csv('../data/small_10k/core-data-test_rating.csv')
-#
-# merged_df = pd.merge(recipe_df, train_rating_df, on='recipe_id', how='inner')
-# interactions_df = merged_df[['user_id', 'recipe_id', 'rating']]
-#
-# users_interactions_count_df = interactions_df.groupby(['user_id', 'recipe_id']).size().groupby('user_id').size()
-# print('# users: %d' % len(users_interactions_count_df))
-# users_with_enough_interactions_df = users_interactions_count_df[users_interactions_count_df >= 5].reset_index()[['user_id']]
-# print('# users with at least 5 interactions: %d' % len(users_with_enough_interactions_df))
-# print('# of interactions: %d' % len(interactions_df))
-# interactions_from_selected_users_df = interactions_df.merge(users_with_enough_interactions_df, how = 'right', left_on = 'user_id', right_on = 'user_id')
-# print('# of interactions from users with at least 5 interactions: %d' % len(interactions_from_selected_users_df))
-#
-# interactions_full_df = interactions_from_selected_users_df.groupby(['user_id', 'recipe_id'])
-# print('# of unique user/item interactions: %d' % len(interactions_full_df))
-# interactions_full_df.head(10)
-#
-# interactions_full_df = merged_df[['user_id', 'recipe_id', 'rating']]
-# interactions_train_df, interactions_test_df = train_test_split(interactions_full_df, test_size=.20)
-# print('# interactions on Train set: %d' % len(interactions_train_df))
-# print('# interactions on Test set: %d' % len(interactions_test_df))
 
-#Top-N accuracy metrics consts
-EVAL_RANDOM_SAMPLE_NON_INTERACTED_ITEMS = 50
+recipe_df = pd.read_csv('../data/clean/recipes.csv')
+train_rating_df = pd.read_csv('../data/clean/ratings.csv')
 
-#New Code Start
-recipe_df = pd.read_csv('../data/original/export_rated_recipes_set.csv')
-recipe_df = recipe_df.head(20000)
-#print(recipe_df.head(5))
+recipe_df = recipe_df.head(1000)
+train_rating_df = train_rating_df.head(10000)
 
-train_rating_df = pd.read_csv('../data/original/core-data-train_rating.csv')
-train_rating_df = train_rating_df.head(20000)
 merged_df = pd.merge(recipe_df, train_rating_df, on='recipe_id', how='inner')
 interactions_df = merged_df[['user_id', 'recipe_id', 'rating']]
-print(interactions_df.head(5))
+
 users_interactions_count_df = interactions_df.groupby(['user_id', 'recipe_id']).size().groupby('user_id').size()
 print('# users: %d' % len(users_interactions_count_df))
-#users_with_enough_interactions_df = users_interactions_count_df[users_interactions_count_df >= 5].reset_index()[['user_id']]
-users_with_enough_interactions_df = users_interactions_count_df[users_interactions_count_df >= 50].reset_index()[['user_id']]
+users_with_enough_interactions_df = users_interactions_count_df[users_interactions_count_df >= 5].reset_index()[['user_id']]
 print('# users with at least 5 interactions: %d' % len(users_with_enough_interactions_df))
 print('# of interactions: %d' % len(interactions_df))
 interactions_from_selected_users_df = interactions_df.merge(users_with_enough_interactions_df, how = 'right', left_on = 'user_id', right_on = 'user_id')
 print('# of interactions from users with at least 5 interactions: %d' % len(interactions_from_selected_users_df))
 
-interactions_full_df = interactions_from_selected_users_df.groupby(['user_id', 'recipe_id'])['rating'].sum().reset_index()
+interactions_full_df = interactions_from_selected_users_df.groupby(['user_id', 'recipe_id'])
 print('# of unique user/item interactions: %d' % len(interactions_full_df))
-interactions_train_df, interactions_test_df = train_test_split(interactions_full_df, test_size=0.20)
+
+interactions_full_df = merged_df[['user_id', 'recipe_id', 'rating']]
+interactions_train_df, interactions_test_df = train_test_split(interactions_full_df, test_size=.20)
 print('# interactions on Train set: %d' % len(interactions_train_df))
 print('# interactions on Test set: %d' % len(interactions_test_df))
-#New Code End
-
 #Indexing by user_id to speed up the searches during evaluation
 interactions_full_indexed_df = interactions_full_df.set_index('user_id')
 interactions_train_indexed_df = interactions_train_df.set_index('user_id')
 interactions_test_indexed_df = interactions_test_df.set_index('user_id')
+
+#Top-N accuracy metrics consts
+EVAL_RANDOM_SAMPLE_NON_INTERACTED_ITEMS = 100
 
 def get_items_interacted(user_id, interactions_df):
     # Get the user's data and merge in the information.
@@ -118,6 +95,7 @@ class ModelEvaluator:
 
         hits_at_5_count = 0
         hits_at_10_count = 0
+        hits_at_20_count = 0
         # For each item the user has interacted in test set
         for item_id in person_interacted_items_testset:
             # Getting a random sample (100) items the user has not interacted
@@ -140,17 +118,18 @@ class ModelEvaluator:
             hits_at_5_count += hit_at_5
             hit_at_10, index_at_10 = self._verify_hit_top_n(item_id, valid_recs, 10)
             hits_at_10_count += hit_at_10
+            hit_at_20, index_at_20 = self._verify_hit_top_n(item_id, valid_recs, 20)
+            hits_at_20_count += hit_at_20
 
         # Recall is the rate of the interacted items that are ranked among the Top-N recommended items,
         # when mixed with a set of non-relevant items
         recall_at_5 = hits_at_5_count / float(interacted_items_count_testset)
         recall_at_10 = hits_at_10_count / float(interacted_items_count_testset)
+        recall_at_20 = hits_at_20_count / float(interacted_items_count_testset)
 
-        person_metrics = {'hits@5_count': hits_at_5_count,
-                          'hits@10_count': hits_at_10_count,
+        person_metrics = {'hits@5_count': hits_at_5_count, 'hits@10_count': hits_at_10_count, 'hits@20_count': hits_at_20_count,
                           'interacted_count': interacted_items_count_testset,
-                          'recall@5': recall_at_5,
-                          'recall@10': recall_at_10}
+                          'recall@5': recall_at_5, 'recall@10': recall_at_10, 'recall@20': recall_at_20}
 
         #if person_recs_df is None: print(person_metrics)
         return person_metrics
@@ -170,8 +149,9 @@ class ModelEvaluator:
 
         global_recall_at_5 = detailed_results_df['hits@5_count'].sum() / float(detailed_results_df['interacted_count'].sum())
         global_recall_at_10 = detailed_results_df['hits@10_count'].sum() / float(detailed_results_df['interacted_count'].sum())
+        global_recall_at_20 = detailed_results_df['hits@20_count'].sum() / float(detailed_results_df['interacted_count'].sum())
 
-        global_metrics = {'modelName': model.get_model_name(), 'recall@5': global_recall_at_5, 'recall@10': global_recall_at_10}
+        global_metrics = {'modelName': model.get_model_name(), 'recall@5': global_recall_at_5, 'recall@10': global_recall_at_10, 'recall@20': global_recall_at_20}
         return global_metrics, detailed_results_df
 
 model_evaluator = ModelEvaluator()
@@ -184,8 +164,9 @@ stopwords_list = stopwords.words('english')
 vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 2), min_df=0.003, max_df=0.5, max_features=5000, stop_words=stopwords_list)
 
 item_ids = recipe_df['recipe_id'].tolist()
-tfidf_matrix = vectorizer.fit_transform(recipe_df['recipe_name'] + "" + recipe_df['ingredients'])
+tfidf_matrix = vectorizer.fit_transform(recipe_df['cook_method'] + "" + recipe_df['ingredients'] + "" + recipe_df['diet_labels'])
 tfidf_feature_names = vectorizer.get_feature_names()
+print("tfidf_feature_names len = ", len(tfidf_feature_names))
 
 def get_item_profile(item_id):
     idx = item_ids.index(item_id)
@@ -293,7 +274,7 @@ users_ids = list(users_items_pivot_matrix_df.index)
 users_ids[:10]
 users_items_pivot_sparse_matrix = csr_matrix(users_items_pivot_matrix)
 #The number of factors to factor the user-item matrix.
-NUMBER_OF_FACTORS_MF = 15
+NUMBER_OF_FACTORS_MF = 50
 #Performs matrix factorization of the original user item matrix
 #U, sigma, Vt = svds(users_items_pivot_matrix, k = NUMBER_OF_FACTORS_MF)
 U, sigma, Vt = svds(users_items_pivot_sparse_matrix, k = NUMBER_OF_FACTORS_MF)
@@ -348,11 +329,9 @@ print('Global metrics:\n%s' % cf_global_metrics)
 ########################################## HYBRID FILTERING BASED ##########################################
 class HybridRecommender:
     MODEL_NAME = 'Hybrid'
-    def __init__(self, cb_rec_model, cf_rec_model, items_df, cb_ensemble_weight=1.0, cf_ensemble_weight=1.0):
+    def __init__(self, cb_rec_model, cf_rec_model, items_df):
         self.cb_rec_model = cb_rec_model
         self.cf_rec_model = cf_rec_model
-        self.cb_ensemble_weight = cb_ensemble_weight
-        self.cf_ensemble_weight = cf_ensemble_weight
         self.items_df = items_df
 
     def get_model_name(self):
@@ -376,7 +355,7 @@ class HybridRecommender:
 
         # Computing a hybrid recommendation score based on CF and CB scores
         # recs_df['recStrengthHybrid'] = recs_df['recStrengthCB'] * recs_df['recStrengthCF']
-        recs_df['recStrengthHybrid'] = (recs_df['recStrengthCB'] * self.cb_ensemble_weight) + (recs_df['recStrengthCF'] * self.cf_ensemble_weight)
+        recs_df['recStrengthHybrid'] = (recs_df['recStrengthCB'] * 0.3) + (recs_df['recStrengthCF'] * 0.7)
 
         # Sorting recommendations by hybrid score
         recommendations_df = recs_df.sort_values('recStrengthHybrid', ascending=False).head(topn)
@@ -389,7 +368,7 @@ class HybridRecommender:
 
         return recommendations_df
 
-hybrid_recommender_model = HybridRecommender(content_based_recommender_model, cf_recommender_model, recipe_df, cb_ensemble_weight=1.0, cf_ensemble_weight=100.0)
+hybrid_recommender_model = HybridRecommender(content_based_recommender_model, cf_recommender_model, recipe_df)
 print('\nEvaluating Hybrid model...')
 hybrid_global_metrics, hybrid_detailed_results_df = model_evaluator.evaluate_model(hybrid_recommender_model)
 print('Global metrics:\n%s' % hybrid_global_metrics)
@@ -402,8 +381,8 @@ global_metrics_df = pd.DataFrame([cb_global_metrics, cf_global_metrics, hybrid_g
 ax = global_metrics_df.transpose().plot(kind='bar', figsize=(15,8))
 for p in ax.patches:
     ax.annotate("%.3f" % p.get_height(), (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 10), textcoords='offset points')
-#plt.show()
-plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.pdf')
+# plt.show()
+plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.png')
 plt.savefig('../plots/%s' %plotfile)
 
 def inspect_interactions(person_id, test_set=True):
@@ -417,10 +396,5 @@ def inspect_interactions(person_id, test_set=True):
 #hybridmodelrecoSingleUserdf = hybrid_recommender_model.recommend_items(3324846, topn=5, verbose=True)
 #print("\nHybrid Model Show Top 5 Recommendations for user [", 3324846, "]\n", hybridmodelrecoSingleUserdf)
 
-
-
-
-
-
-sys.stdout = old_stdout
-log_file.close()
+# sys.stdout = old_stdout
+# log_file.close()
