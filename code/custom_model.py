@@ -12,7 +12,7 @@ from custom_hybrid import HybridRecommender
 from custom_popularity import PopularityRecommender
 from datetime import datetime
 
-start_time = time.time()
+program_start_time = start_time = time.time()
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 isEval = False
@@ -23,7 +23,7 @@ recipe_df = pd.read_csv(os.path.realpath('../data/clean/recipes.csv'))
 rating_df = pd.read_csv(os.path.realpath('../data/clean/ratings.csv'))
 user_df = pd.read_csv(os.path.realpath('../data/clean/users.csv'))
 
-#user_df = user_df.head(1000)
+user_df = user_df.head(100)
 # valid_users_interaction_df is a subset of rating_df
 valid_users_interaction_df = pd.merge(rating_df, user_df, on='user_id', how='inner')
 merged_df = pd.merge(recipe_df, valid_users_interaction_df, on='recipe_id', how='inner')
@@ -40,7 +40,8 @@ interactions_train_df, interactions_test_df = train_test_split(interactions_df, 
 interactions_full_indexed_df = interactions_df.set_index('user_id')
 interactions_train_indexed_df = interactions_train_df.set_index('user_id')
 interactions_test_indexed_df = interactions_test_df.set_index('user_id')
-#print("--- Total data execution time is %s min ---" %((time.time() - start_time)/60))
+print("--- Total data execution time is %s min ---" %((time.time() - start_time)/60))
+start_time = time.time()
 
 if isEval:
     users_interactions_count_df = interactions_df.groupby(['user_id', 'recipe_id']).size().groupby('user_id').size()
@@ -77,6 +78,7 @@ else:
     save_reco_model('contentbasedmodel', content_based_recommender_model)
     print('Saved contentbasedmodel...')
 print("--- Total content based execution time is %s min ---" %((time.time() - start_time)/60))
+start_time = time.time()
 
 #collaborative based
 if isEval:
@@ -89,6 +91,7 @@ else:
     save_reco_model('collaborativemodel', cf_recommender_model)
     print('Saved collaborativemodel...')
 print("--- Total Collaborative SVD based execution time is %s min ---" %((time.time() - start_time)/60))
+start_time = time.time()
 
 if isEval:
     print('\nEvaluating Hybrid...')
@@ -100,6 +103,7 @@ else:
     save_reco_model('hybridmodel', hybrid_recommender_model)
     print('Saved hybridmodel...')
 print("--- Total Hybrid based model execution time is %s min ---" %((time.time() - start_time)/60))
+start_time = time.time()
 
 #create and save popularity model as well
 if not isEval:
@@ -121,4 +125,5 @@ if isEval:
     # plt.show()
     plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.png')
     plt.savefig(os.path.realpath('../plots/%s' % plotfile))
+print("--- Total task execution time is %s min ---" %((time.time() - program_start_time)/60))
 sys.argv.clear()

@@ -15,7 +15,7 @@ import time
 import sys
 from datetime import datetime
 old_stdout = sys.stdout
-start_time = time.time()
+program_start_time = start_time = time.time()
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 # filename = datetime.now().strftime('mylogfile_%b-%d-%Y_%H%M.log')
@@ -28,7 +28,7 @@ recipe_df = pd.read_csv('../data/clean/recipes.csv')
 train_rating_df = pd.read_csv('../data/clean/ratings.csv')
 
 user_df = pd.read_csv('../data/clean/users.csv')
-#user_df = user_df.head(2000)
+#user_df = user_df.head(200)
 # valid_users_interaction_df is a subset of rating_df
 valid_users_interaction_df = pd.merge(train_rating_df, user_df, on='user_id', how='inner')
 merged_df = pd.merge(recipe_df, valid_users_interaction_df, on='recipe_id', how='inner')
@@ -61,7 +61,7 @@ interactions_full_indexed_df = interactions_full_df.set_index('user_id')
 interactions_train_indexed_df = interactions_train_df.set_index('user_id')
 interactions_test_indexed_df = interactions_test_df.set_index('user_id')
 print("--- Total data execution time is %s min ---" %((time.time() - start_time)/60))
-
+start_time = time.time()
 #Top-N accuracy metrics consts
 EVAL_RANDOM_SAMPLE_NON_INTERACTED_ITEMS = 100
 
@@ -267,7 +267,7 @@ print('Global metrics:\n%s' % cb_global_metrics)
 #print("CB Log: Cols in cb_detailed_results_df", list(cb_detailed_results_df.columns.values))
 #print(cb_detailed_results_df.head(5))
 print("--- Total content based execution time is %s min ---" %((time.time() - start_time)/60))
-
+start_time = time.time()
 ########################################## COLLABORATIVE FILTERING BASED ##########################################
 
 #Creating a sparse pivot table with users in rows and items in columns
@@ -330,7 +330,7 @@ print('Global metrics:\n%s' % cf_global_metrics)
 #print("CF Log: Cols in cf_detailed_results_df", list(cf_detailed_results_df.columns.values))
 #print(cf_detailed_results_df.head(5))
 print("--- Total collaborative based execution time is %s min ---" %((time.time() - start_time)/60))
-
+start_time = time.time()
 ########################################## HYBRID FILTERING BASED ##########################################
 class HybridRecommender:
     MODEL_NAME = 'Hybrid'
@@ -379,7 +379,7 @@ hybrid_global_metrics, hybrid_detailed_results_df = model_evaluator.evaluate_mod
 print('Global metrics:\n%s' % hybrid_global_metrics)
 #print(hybrid_detailed_results_df.head(5))
 print("--- Total hybrid based execution time is %s min ---" %((time.time() - start_time)/60))
-
+start_time = time.time()
 #plot graph
 #global_metrics_df = pd.DataFrame([cb_global_metrics, pop_global_metrics, cf_global_metrics, hybrid_global_metrics]).set_index('modelName')
 global_metrics_df = pd.DataFrame([cb_global_metrics, cf_global_metrics, hybrid_global_metrics]).set_index('modelName')
@@ -404,4 +404,4 @@ def inspect_interactions(person_id, test_set=True):
 
 # sys.stdout = old_stdout
 # log_file.close()
-print("--- Total program execution time is %s min ---" %((time.time() - start_time)/60))
+print("--- Total program execution time is %s min ---" %((time.time() - program_start_time)/60))
