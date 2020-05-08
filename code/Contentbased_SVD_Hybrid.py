@@ -25,8 +25,8 @@ old_stdout = sys.stdout
 recipe_df = pd.read_csv('../data/clean/recipes.csv')
 train_rating_df = pd.read_csv('../data/clean/ratings.csv')
 
-recipe_df = recipe_df.head(1000)
-train_rating_df = train_rating_df.head(10000)
+#recipe_df = recipe_df.head(1000)
+#train_rating_df = train_rating_df.head(10000)
 
 merged_df = pd.merge(recipe_df, train_rating_df, on='recipe_id', how='inner')
 interactions_df = merged_df[['user_id', 'recipe_id', 'rating']]
