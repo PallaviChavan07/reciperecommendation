@@ -28,7 +28,8 @@ class ContentBasedRecommender:
         self.user_df = user_df
 
         self.user_profiles = self.build_users_profiles()
-        #print("\nTotal User Profiles: ", len(self.user_profiles))
+        print("\nTotal User Profiles: ", len(self.user_profiles))
+        print("tfidf_feature_names len = ", len(self.tfidf_feature_names))
         # print(user_profiles)
         # myprofile = user_profiles[3324846]
         # print(myprofile.shape)
