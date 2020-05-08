@@ -23,7 +23,7 @@ recipe_df = pd.read_csv(os.path.realpath('../data/clean/recipes.csv'))
 rating_df = pd.read_csv(os.path.realpath('../data/clean/ratings.csv'))
 user_df = pd.read_csv(os.path.realpath('../data/clean/users.csv'))
 
-#user_df = user_df.head(100)
+#user_df = user_df.head(150)
 # valid_users_interaction_df is a subset of rating_df
 valid_users_interaction_df = pd.merge(rating_df, user_df, on='user_id', how='inner')
 merged_df = pd.merge(recipe_df, valid_users_interaction_df, on='recipe_id', how='inner')
@@ -116,7 +116,7 @@ if not isEval:
 if isEval:
     # plot graph
     global_metrics_df = pd.DataFrame([cb_metrics, cf_metrics, hybrid_metrics]).set_index('model')
-    # print(global_metrics_df)
+    print(global_metrics_df)
     ax = global_metrics_df.transpose().plot(kind='bar', color=['red', 'green', 'blue'], figsize=(15, 8))
     for p in ax.patches:
         # ax.annotate("%.3f" % p.get_height(), (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 5), textcoords='offset points')
