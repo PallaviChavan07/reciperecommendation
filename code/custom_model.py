@@ -43,7 +43,7 @@ interactions_test_indexed_df = interactions_test_df.set_index('user_id')
 #print("--- Total data execution time is %s min ---" %((time.time() - start_time)/60))
 
 #create instance for model evaluator to be used in respective recommenders
-model_evaluator = ModelEvaluator(recipe_df, interactions_full_indexed_df, interactions_train_indexed_df, interactions_test_indexed_df)
+model_evaluator = ModelEvaluator(interactions_full_indexed_df, interactions_test_indexed_df)
 
 def save_reco_model(filename, model):
     pathtosave = '../models/' + filename + '.mdl'
@@ -60,7 +60,7 @@ if isEval:
     print('Content Based Metrics:\n%s' % cb_metrics)
 else:
     print('\nCreating Content-Based Filtering model...')
-    content_based_recommender_model = ContentBasedRecommender(recipe_df, interactions_full_indexed_df, user_df)
+    content_based_recommender_model = ContentBasedRecommender(recipe_df, interactions_train_indexed_df, user_df)
     save_reco_model('contentbasedmodel', content_based_recommender_model)
     print('Saved contentbasedmodel...')
 print("--- Total content based execution time is %s min ---" %((time.time() - start_time)/60))
@@ -72,7 +72,7 @@ if isEval:
     print('Collaborative SVD Matric Factorization Metrics:\n%s' % cf_metrics)
 else:
     print('\nCreating Collaborative Filtering (SVD Matrix Factorization) model...')
-    cf_recommender_model = CFRecommender(recipe_df, interactions_train_df, interactions_full_indexed_df, interactions_train_indexed_df, interactions_test_indexed_df, user_df)
+    cf_recommender_model = CFRecommender(recipe_df, interactions_train_indexed_df, user_df)
     save_reco_model('collaborativemodel', cf_recommender_model)
     print('Saved collaborativemodel...')
 print("--- Total Collaborative SVD based execution time is %s min ---" %((time.time() - start_time)/60))
@@ -106,6 +106,6 @@ if isEval:
         ax.annotate("%.2f" % p.get_height(), (p.get_x(), p.get_height()), ha='center', va='center', xytext=(0, 5),
                     textcoords='offset points')
     # plt.show()
-    plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.pdf')
+    plotfile = datetime.now().strftime('plot_%b-%d-%Y_%H%M.png')
     plt.savefig(os.path.realpath('../plots/%s' % plotfile))
 sys.argv.clear()

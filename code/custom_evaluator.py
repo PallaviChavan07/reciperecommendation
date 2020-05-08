@@ -1,10 +1,8 @@
 import pandas as pd
 
 class ModelEvaluator:
-    def __init__(self, recipe_df, interactions_full_indexed_df=None, interactions_train_indexed_df=None, interactions_test_indexed_df=None):
-        self.recipe_df = recipe_df
+    def __init__(self, interactions_full_indexed_df=None, interactions_test_indexed_df=None):
         self.interactions_full_indexed_df = interactions_full_indexed_df
-        self.interactions_train_indexed_df = interactions_train_indexed_df
         self.interactions_test_indexed_df = interactions_test_indexed_df
 
     def get_recipes_interacted(self, user_id):
@@ -80,7 +78,6 @@ class ModelEvaluator:
         # print('Running evaluation for users')
         #if model.get_model_name() == 'ContentBased':
         users_metrics = []
-        #for idx, user_id in enumerate(list(self.interactions_full_indexed_df.index.unique().values)):
         for idx, user_id in enumerate(list(self.interactions_test_indexed_df.index.unique().values)):
             singleuser_metric = self.evaluate_model_for_user_enchanced(model, user_id)
             users_metrics.append(singleuser_metric)

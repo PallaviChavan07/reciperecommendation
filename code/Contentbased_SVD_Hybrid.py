@@ -11,10 +11,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse.linalg import svds
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
-import math
+import time
 import sys
 from datetime import datetime
 old_stdout = sys.stdout
+start_time = time.time()
+pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 # filename = datetime.now().strftime('mylogfile_%b-%d-%Y_%H%M.log')
 # log_file = open("../logs/%s" %filename,"w")
@@ -25,11 +27,19 @@ old_stdout = sys.stdout
 recipe_df = pd.read_csv('../data/clean/recipes.csv')
 train_rating_df = pd.read_csv('../data/clean/ratings.csv')
 
-#recipe_df = recipe_df.head(1000)
-#train_rating_df = train_rating_df.head(10000)
-
-merged_df = pd.merge(recipe_df, train_rating_df, on='recipe_id', how='inner')
+user_df = pd.read_csv('../data/clean/users.csv')
+#user_df = user_df.head(2000)
+# valid_users_interaction_df is a subset of rating_df
+valid_users_interaction_df = pd.merge(train_rating_df, user_df, on='user_id', how='inner')
+merged_df = pd.merge(recipe_df, valid_users_interaction_df, on='recipe_id', how='inner')
+# get unique recipes from merged df
+unique_valid_recipes = merged_df.recipe_id.unique()
+recipe_df = recipe_df[recipe_df['recipe_id'].isin(unique_valid_recipes)]
 interactions_df = merged_df[['user_id', 'recipe_id', 'rating']]
+
+# train_rating_df = train_rating_df.head(2000)
+# merged_df = pd.merge(recipe_df, train_rating_df, on='recipe_id', how='inner')
+# interactions_df = merged_df[['user_id', 'recipe_id', 'rating']]
 
 users_interactions_count_df = interactions_df.groupby(['user_id', 'recipe_id']).size().groupby('user_id').size()
 print('# users: %d' % len(users_interactions_count_df))
@@ -50,6 +60,7 @@ print('# interactions on Test set: %d' % len(interactions_test_df))
 interactions_full_indexed_df = interactions_full_df.set_index('user_id')
 interactions_train_indexed_df = interactions_train_df.set_index('user_id')
 interactions_test_indexed_df = interactions_test_df.set_index('user_id')
+print("--- Total data execution time is %s min ---" %((time.time() - start_time)/60))
 
 #Top-N accuracy metrics consts
 EVAL_RANDOM_SAMPLE_NON_INTERACTED_ITEMS = 100
@@ -166,7 +177,7 @@ vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 2), min_df=0.003, 
 item_ids = recipe_df['recipe_id'].tolist()
 tfidf_matrix = vectorizer.fit_transform(recipe_df['cook_method'] + "" + recipe_df['ingredients'] + "" + recipe_df['diet_labels'])
 tfidf_feature_names = vectorizer.get_feature_names()
-print("tfidf_feature_names len = ", len(tfidf_feature_names))
+print("\n# tfidf_feature_names len = ", len(tfidf_feature_names))
 
 def get_item_profile(item_id):
     idx = item_ids.index(item_id)
@@ -206,12 +217,6 @@ def build_users_profiles():
 
 user_profiles = build_users_profiles()
 print("\nTotal User Profiles: ", len(user_profiles))
-#print(user_profiles)
-#myprofile = user_profiles[3324846]
-#print(myprofile.shape)
-#print(pd.DataFrame(sorted(zip(tfidf_feature_names, user_profiles[3324846].flatten().tolist()), key=lambda x: -x[1])[:20], columns=['token', 'relevance']))
-#myprofile = user_profiles[682828]
-#print(myprofile.shape)
 
 class ContentBasedRecommender:
     MODEL_NAME = 'Content-Based'
@@ -261,6 +266,7 @@ cb_global_metrics, cb_detailed_results_df = model_evaluator.evaluate_model(conte
 print('Global metrics:\n%s' % cb_global_metrics)
 #print("CB Log: Cols in cb_detailed_results_df", list(cb_detailed_results_df.columns.values))
 #print(cb_detailed_results_df.head(5))
+print("--- Total content based execution time is %s min ---" %((time.time() - start_time)/60))
 
 ########################################## COLLABORATIVE FILTERING BASED ##########################################
 
@@ -269,9 +275,7 @@ users_items_pivot_matrix_df = interactions_train_df.pivot(index='user_id', colum
 users_items_pivot_matrix_df.head(10)
 
 users_items_pivot_matrix = users_items_pivot_matrix_df
-users_items_pivot_matrix[:10]
 users_ids = list(users_items_pivot_matrix_df.index)
-users_ids[:10]
 users_items_pivot_sparse_matrix = csr_matrix(users_items_pivot_matrix)
 #The number of factors to factor the user-item matrix.
 NUMBER_OF_FACTORS_MF = 50
@@ -325,6 +329,7 @@ cf_global_metrics, cf_detailed_results_df = model_evaluator.evaluate_model(cf_re
 print('Global metrics:\n%s' % cf_global_metrics)
 #print("CF Log: Cols in cf_detailed_results_df", list(cf_detailed_results_df.columns.values))
 #print(cf_detailed_results_df.head(5))
+print("--- Total collaborative based execution time is %s min ---" %((time.time() - start_time)/60))
 
 ########################################## HYBRID FILTERING BASED ##########################################
 class HybridRecommender:
@@ -355,7 +360,7 @@ class HybridRecommender:
 
         # Computing a hybrid recommendation score based on CF and CB scores
         # recs_df['recStrengthHybrid'] = recs_df['recStrengthCB'] * recs_df['recStrengthCF']
-        recs_df['recStrengthHybrid'] = (recs_df['recStrengthCB'] * 0.3) + (recs_df['recStrengthCF'] * 0.7)
+        recs_df['recStrengthHybrid'] = (recs_df['recStrengthCB'] * 0.5) + (recs_df['recStrengthCF'] * 0.5)
 
         # Sorting recommendations by hybrid score
         recommendations_df = recs_df.sort_values('recStrengthHybrid', ascending=False).head(topn)
@@ -373,6 +378,7 @@ print('\nEvaluating Hybrid model...')
 hybrid_global_metrics, hybrid_detailed_results_df = model_evaluator.evaluate_model(hybrid_recommender_model)
 print('Global metrics:\n%s' % hybrid_global_metrics)
 #print(hybrid_detailed_results_df.head(5))
+print("--- Total hybrid based execution time is %s min ---" %((time.time() - start_time)/60))
 
 #plot graph
 #global_metrics_df = pd.DataFrame([cb_global_metrics, pop_global_metrics, cf_global_metrics, hybrid_global_metrics]).set_index('modelName')
@@ -398,3 +404,4 @@ def inspect_interactions(person_id, test_set=True):
 
 # sys.stdout = old_stdout
 # log_file.close()
+print("--- Total program execution time is %s min ---" %((time.time() - start_time)/60))
